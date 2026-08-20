@@ -37,6 +37,6 @@ A lightweight, local AI desktop application built with Python and CustomTkinter.
 
 1. **Clone the repository**
    ```bash
-   git clone [https://github.com/your-username/BoingAI.git](https://github.com/your-username/BoingAI.git)
+   git clone [https://github.com/Conics-Productions/BoingAI.git](https://github.com/Conics-Productions/BoingAI.git)
    cd BoingAI
 or... just download the app from the latest release
