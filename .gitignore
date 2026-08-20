@@ -1,0 +1,20 @@
+# Python cache
+__pycache__/
+*.pyc
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# PyInstaller / Build files
+build/
+dist/
+*.spec
+
+# Hugging Face local cache & models
+*.bin
+*.safetensors
+*.gguf
+*.onnx
+.cache/

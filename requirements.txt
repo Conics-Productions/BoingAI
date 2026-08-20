@@ -1,0 +1,6 @@
+torch
+transformers
+accelerate
+huggingface_hub
+customtkinter   # Modern, cross-platform UI framework for Python
+pyinstaller     # For packaging into executable (.exe / .app)
