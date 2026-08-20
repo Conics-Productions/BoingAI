@@ -1,4 +1,4 @@
-# BoingAI Studio 🚀
+# BoingAI Studio <img src="other/assets/logo.png" width="30" height="30" alt="Icon">
 
 A lightweight, local AI desktop application built with Python and CustomTkinter. BoingAI lets you run GGUF models (Qwen, Llama, Gemma) locally on your MacOS or Windows device with real-time web search, persistent AI memories, saved chat histories, and live code previewing.
 
