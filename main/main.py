@@ -1,8 +1,8 @@
 import sys
 import os
 
-# Ensure script location is in Python path for root imports
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# Add the project root directory (BoingAI) to Python's module lookup path
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from main.app import BoingAIApp
 

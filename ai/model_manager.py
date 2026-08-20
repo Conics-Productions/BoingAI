@@ -1,49 +1,59 @@
-import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from llama_cpp import Llama
+import os
+from ai.web_search import search_web
+from ai.memory_manager import MemoryManager
+
+GGUF_MODELS = {
+    "Qwen 2.5 Chat (1.5B)": "models/qwen2.5-1.5b-instruct-q4_k_m.gguf",
+    "Llama 3.2 Chat (1B)": "models/Llama-3.2-1B-Instruct-Q4_K_M.gguf",
+    "Gemma 2 Chat (2B)": "models/gemma-2-2b-it-Q4_K_M.gguf",
+    "Qwen 2.5 Coder (1.5B)": "models/qwen2.5-coder-1.5b-instruct-q4_k_m.gguf",
+}
 
 class AIModelEngine:
-    def __init__(self, model_id: str = "Qwen/Qwen2.5-0.5B-Instruct"):
-        self.model_id = model_id
-        self.device = self._detect_device()
-        self.tokenizer = None
-        self.model = None
+    def __init__(self):
+        self.llm = None
+        self.memory_mgr = MemoryManager()
 
-    def _detect_device(self) -> str:
-        """Detect GPU acceleration for macOS (Apple Silicon Metal) or Windows (CUDA)."""
-        if torch.cuda.is_available():
-            return "cuda"
-        elif hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
-            return "mps"  # Metal Performance Shaders for macOS
-        return "cpu"
+    def load_model(self, model_display_name: str = "Qwen 2.5 Chat (1.5B)"):
+        self.llm = None 
+        file_path = GGUF_MODELS.get(model_display_name)
+        if not file_path or not os.path.exists(file_path):
+            raise FileNotFoundError(f"File '{file_path}' does not exist.")
 
-    def load_model(self):
-        """Downloads/caches and loads the Hugging Face model into memory."""
-        self.tokenizer = AutoTokenizer.from_pretrained(self.model_id)
-        self.model = AutoModelForCausalLM.from_pretrained(
-            self.model_id,
-            torch_dtype=torch.float16 if self.device != "cpu" else torch.float32,
-            device_map=self.device
+        self.llm = Llama(
+            model_path=file_path,
+            n_ctx=2048,
+            n_gpu_layers=1,
+            verbose=False
         )
 
-    def generate_response(self, user_prompt: str) -> str:
-        if not self.model or not self.tokenizer:
-            return "Error: Model is not loaded yet."
+    def generate_response(self, user_prompt: str, enable_web_search: bool = True) -> str:
+        if not self.llm:
+            return "Error: Model not loaded."
 
-        messages = [{"role": "user", "content": user_prompt}]
-        formatted_prompt = self.tokenizer.apply_chat_template(
-            messages, tokenize=False, add_generation_prompt=True
+        system_instruction = "You are a helpful AI assistant."
+
+        # 1. Inject Persistent Memories
+        memories = self.memory_mgr.get_all_memories()
+        if memories:
+            memory_block = "\n".join([f"- {m}" for m in memories])
+            system_instruction += f"\n\nKey facts you remember about the user:\n{memory_block}"
+
+        # 2. Inject Web Search Context
+        if enable_web_search:
+            search_context = search_web(user_prompt)
+            if search_context:
+                system_instruction += f"\n\nReal-time web search results:\n{search_context}"
+
+        messages = [
+            {"role": "system", "content": system_instruction},
+            {"role": "user", "content": user_prompt}
+        ]
+
+        response = self.llm.create_chat_completion(
+            messages=messages,
+            max_tokens=256,
+            temperature=0.7
         )
-
-        inputs = self.tokenizer(formatted_prompt, return_tensors="pt").to(self.device)
-        
-        with torch.no_grad():
-            outputs = self.model.generate(
-                **inputs,
-                max_new_tokens=256,
-                temperature=0.7,
-                do_sample=True
-            )
-
-        # Decode response without echo
-        generated_tokens = outputs[0][inputs['input_ids'].shape[1]:]
-        return self.tokenizer.decode(generated_tokens, skip_special_tokens=True)
+        return response["choices"][0]["message"]["content"].strip()
